@@ -25,8 +25,8 @@ from tensorflow.keras import optimizers
 random.seed(101)
 L = tf.keras.layers
 
-MAX_PASSWORD_LEN = 8
-MIN_PASSWORD_LEN = 4
+MAX_PASSWORD_LEN = 4
+MIN_PASSWORD_LEN = 0
 ALLOW_LETTERS = True
 ALLOW_UPPERCASE = False
 ALLOW_DIGITS = False
@@ -34,7 +34,7 @@ ALLOW_PUNCTUATION = False
 
 
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 300
+NUM_EPOCHS = 100
 
 
 unique_words = {}
@@ -166,8 +166,9 @@ class SHAToChar(Model):
 
     def build(self, input_shape):
 
-        self.net = L.Dense(self.units,
-                           input_shape=input_shape)
+        self.net = tf.keras.Sequential([
+            L.Dense(512, input_shape=input_shape),
+            L.Dense(self.units)])
         super().build(input_shape=input_shape)
 
     def call(self, x):
@@ -192,7 +193,7 @@ class SHAToChar(Model):
 
 
 if __name__ == "__main__":
-    labels_string = get_random_words(1500)
+    labels_string = get_random_words(15000)
     labels = string_vectorizer(labels_string)
 
     data = hash_words(labels_string)
@@ -207,8 +208,10 @@ if __name__ == "__main__":
     data_t = tf.convert_to_tensor(data, dtype='float32')
     labels_t = tf.convert_to_tensor(labels, dtype='int32')
 
-    X, y = data_t[:1000], labels_t[:1000]
-    X_val, y_val = data_t[1000:], labels_t[1000:]
+    val_split = int(0.4 * len(labels_string))
+
+    X, y = data_t[:val_split], labels_t[:val_split]
+    X_val, y_val = data_t[val_split:], labels_t[val_split:]
 
     print(X.shape, y.shape)
     print('\nTraining .... \n')
@@ -226,13 +229,13 @@ if __name__ == "__main__":
 
         loss = loss_t.numpy()
         val_loss = val_loss_t.numpy()
-        if (epoch + 1) % 15 == 0:
+        if (epoch + 1) % 10 == 0:
             print(
                 f'Epoch {epoch + 1 }: train_loss: {loss:.2f}, val_loss: {val_loss:.2f}')
-    print(f'\n Train data Predictions after {NUM_EPOCHS} epochs: ')
+    print(f'\nSome Train data Predictions after {NUM_EPOCHS} epochs: ')
     print('Labels        : ', labels_string[0:10])
     print('Predications  : ', model.predict(X[:10]))
 
-    print(f'\n Validation data Predictions after {NUM_EPOCHS} epochs: ')
-    print('Labels        : ', labels_string[1000:1010])
+    print(f'\nSome Validation data Predictions after {NUM_EPOCHS} epochs: ')
+    print('Labels        : ', labels_string[val_split: val_split + 10])
     print('Predications  : ', model.predict(X_val[:10]))
